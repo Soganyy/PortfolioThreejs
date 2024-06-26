@@ -1,19 +1,41 @@
 import { useThree } from '@react-three/fiber';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { gsap } from 'gsap';
 
-function CustomCamera({ position, lookAt, active }) {
+function CustomCamera({ position, lookAt, active, transitionDuration = 2 }) {
   const { set, camera, gl, scene } = useThree();
+  const lookAtTarget = useRef(new THREE.Vector3(...lookAt));
 
   useEffect(() => {
     if (active) {
-      camera.position.set(position.x, position.y, position.z);
-      camera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
-      camera.updateProjectionMatrix();
-      set({ camera }); // Update the active camera
-      gl.render(scene, camera); // Re-render the scene with the active camera
+      const newPosition = new THREE.Vector3(...position);
+      
+      // Animate the camera position
+      gsap.to(camera.position, {
+        x: newPosition.x,
+        y: newPosition.y,
+        z: newPosition.z,
+        duration: transitionDuration,
+        onUpdate: () => {
+          // Update the lookAt target position
+          lookAtTarget.current.lerp(new THREE.Vector3(...lookAt), 0.1);
+          
+          // Update camera lookAt direction
+          camera.lookAt(lookAtTarget.current);
+          camera.updateProjectionMatrix();
+          
+          // Render the scene (you may need to access the renderer and scene from context)
+          // gl.render(scene, camera);
+        },
+        onComplete: () => {
+          // Set the active camera after the animation
+          set({ camera });
+          gl.render(scene, camera);
+        }
+      });
     }
-  }, [active, camera, position, lookAt, set, gl]);
+  }, [active, position, lookAt, camera, set, gl, scene, transitionDuration]);
 
   return null;
 }

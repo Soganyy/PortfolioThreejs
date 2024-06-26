@@ -1,73 +1,87 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Box, OrbitControls } from "@react-three/drei";
 import CustomCamera from "./CustomCamera";
 import ModelGltf from "./ModelGltf";
 
 function ModelRoomFull() {
-  const [activeCamera, setActiveCamera] = useState("camera1");
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  const toggleCamera = () => {
-    setActiveCamera(activeCamera === "camera1" ? "camera2" : "camera1");
-  };
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      scrollTop < 200
+        ? setScrollPosition(0)
+        : scrollTop < 400
+        ? setScrollPosition(3)
+        : setScrollPosition(6);
+    };
+
+    const handleMouseMove = (event) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
+
+  // Calculate lookAt position based on mouse position
+  const lookAtX = (mousePosition.x / window.innerWidth - 0.5) * 2;
+  const lookAtY = -(mousePosition.y / window.innerHeight - 0.5) * 2;
+
   return (
-    <div>
-      <button onClick={toggleCamera}>Toggle Camera</button>
-      <Canvas
-        style={{
-          height: window.innerHeight - (window.innerHeight * 3) / 100,
-          backgroundColor: "#724D37",
-        }}
-      >
-        // Camera
-        <CustomCamera
-          position={{ x: 0, y: 4, z: 2 }}
-          lookAt={{ x: 1, y: 1, z: 5 }}
-          active={activeCamera === 'camera1'}
+    <Canvas
+      style={{
+        position: "fixed",
+        zIndex: "-1",
+        width: window.innerWidth - (window.innerWidth * 1) / 100,
+        height: window.innerHeight - (window.innerHeight * 3) / 100,
+        backgroundColor: "#2E2521",
+      }}
+    >
+      <CustomCamera
+        position={[0, 3, scrollPosition]}
+        lookAt={[lookAtX, 3 + lookAtY, -4]}
+        active={"camera1"}
+      />
+      <spotLight
+        position={[0, 10, 0]}
+        angle={1}
+        penumbra={1}
+        intensity={200}
+        castShadow={1}
+        color="#EADBC8"
+      />
+      <spotLight
+        position={[4, 2, -4]}
+        angle={1}
+        penumbra={1}
+        intensity={10}
+        castShadow={1}
+        color="#874CCC"
+      />
+      <spotLight
+        position={[-4, 2, -4]}
+        angle={1}
+        penumbra={1}
+        intensity={20}
+        castShadow={1}
+        color="#874CCC"
+      />
+      <Suspense fallback={null}>
+        <ModelGltf
+          url="/models/Room1.glb"
+          scale={[1, 1, 1]}
+          position={[0, -0.5, 3]}
+          rotation={[0, 0, 0]}
         />
-        <CustomCamera
-          position={{ x: 0, y: 7, z: 2 }}
-          lookAt={{ x: 1, y: 1, z: 5 }}
-          active={activeCamera === 'camera2'}
-        />
-        // Lighting
-        {/* <Box scale={[0.1, 0.1, 0.1]} position={[-4, 2, -4]} /> */}
-        <spotLight
-          position={[0, 5, 0]}
-          angle={2}
-          penumbra={1}
-          intensity={10}
-          castShadow={1}
-          color="#EADBC8"
-        />
-        <spotLight
-          direction={[]}
-          position={[4, 2, -4]}
-          angle={1}
-          penumbra={1}
-          intensity={10}
-          castShadow={1}
-          color="#874CCC"
-        />
-        <spotLight
-          position={[-4, 2, -4]}
-          angle={1}
-          penumbra={1}
-          intensity={20}
-          castShadow={1}
-          color="#874CCC"
-        />
-        <Suspense fallback={null}>
-          <ModelGltf
-            url="/models/Room1.glb"
-            scale={[1, 1, 1]}
-            position={[0, -0.5, 0]}
-            rotation={[0, 0, 0]}
-          />
-        </Suspense>
-        <OrbitControls />
-      </Canvas>
-    </div>
+      </Suspense>
+    </Canvas>
   );
 }
 
